@@ -31,6 +31,8 @@ Các thông tin sau được trích xuất từ phần mô tả video (Descripti
 
 > **Note**: Do giới hạn về thời lượng sử dụng API, tính đến thời điểm hiện tại, khoảng **50%** dữ liệu văn bản đã được hoàn thành trích xuất các thông tin chi tiết về vở diễn.
 
+Location: Statistic/Dataset.xlsx
+
 ---
 
 ## 2. Bộ dữ liệu Âm thanh (Audio Dataset)
@@ -46,9 +48,11 @@ Bộ dữ liệu bao phủ **137 vở diễn** thuộc **6 loại hình nghệ t
 5. **Hát Xẩm**
 6. **Quan Họ**
 
-### Quy chuẩn phân đoạn (Segmentation):
+### Phân đoạn (Segmentation):
 Dữ liệu audio được xử lý cắt nhỏ để tối ưu cho việc huấn luyện mô hình và phân tích đặc trưng:
-* **Quy chuẩn chung**: Các file audio gốc thường được cắt thành các segment có độ dài cố định là **45 giây**.
+* **Độ dài chung**: Các file audio gốc thường được cắt thành các segment có độ dài cố định là **45 giây**.
 * **Trường hợp đặc biệt**: Đối với các vở **Chèo có ID từ 13 đến 22**, các file audio được cắt thủ công theo các đoạn thoại có nội dung và ý nghĩa độc lập. Phương pháp này giúp giữ nguyên ngữ cảnh, sắc thái biểu cảm và giá trị nghệ thuật đặc thù của từng phân cảnh.
+
+Location: Audio Dataset
 
 ---
