@@ -5,14 +5,22 @@ import json
 import time
 import os
 from tqdm import tqdm
+import argparse
 
 # --- CẤU HÌNH ---
-API_KEY = "AIzaSyB5TS2vQmxq_It55-wh68wQSTk0vzVhDbE"
-INPUT_FILE = "Audio.xlsx"
-SHEET_NAME = "Sheet3"     
+# Read API_KEY from file
+API_KEY_FILE = "api_key.txt"
+if os.path.exists(API_KEY_FILE):
+    with open(API_KEY_FILE, 'r') as f:
+        API_KEY = f.read().strip()
+else:
+    raise FileNotFoundError(f"API key file '{API_KEY_FILE}' not found. Please create it with your API key.")
+
+INPUT_FILE = "Statistic/Dataset.xlsx"
+SHEET_NAME = "Text Dataset"     
 COLUMN_NAME = "Description" 
 OUTPUT_FILE = "ket_qua_cheo.xlsx"
-BATCH_SIZE = 15 
+BATCH_SIZE = 10 
 
 client = genai.Client(api_key=API_KEY)
 
@@ -32,7 +40,7 @@ Dữ liệu:
 {}
 """
 
-def process_data():
+def process_data(start_idx=None):
     try:
         df = pd.read_excel(INPUT_FILE, sheet_name=SHEET_NAME)
     except Exception as e:
@@ -40,13 +48,20 @@ def process_data():
         return
 
     # Resume logic
-    if os.path.exists(OUTPUT_FILE):
-        df_result = pd.read_excel(OUTPUT_FILE)
-        start_idx = len(df_result)
-        print(f"Tiếp tục từ dòng {start_idx}...")
+    if start_idx is None:
+        if os.path.exists(OUTPUT_FILE):
+            df_result = pd.read_excel(OUTPUT_FILE)
+            start_idx = len(df_result)
+            print(f"Tiếp tục từ dòng {start_idx}...")
+        else:
+            start_idx = 0
+            df_result = pd.DataFrame()
     else:
-        start_idx = 0
-        df_result = pd.DataFrame()
+        if os.path.exists(OUTPUT_FILE):
+            df_result = pd.read_excel(OUTPUT_FILE)
+        else:
+            df_result = pd.DataFrame()
+        print(f"Bắt đầu từ dòng chỉ định: {start_idx}...")
 
     for i in tqdm(range(start_idx, len(df), BATCH_SIZE)):
         batch_slice = df.iloc[i:i+BATCH_SIZE]
@@ -62,13 +77,18 @@ def process_data():
             )
             
             results = json.loads(response.text)
+            # Ensure results is a list
+            if isinstance(results, dict) and len(results) == 1:
+                results = list(results.values())[0]
+                
             batch_extracted = pd.DataFrame(results)
-            combined_batch = pd.concat([batch_slice.reset_index(drop=True), batch_extracted], axis=1)
+            # Use index-based join to handle cases where AI returns fewer/more items than BATCH_SIZE
+            combined_batch = batch_slice.reset_index(drop=True).join(batch_extracted, rsuffix='_extracted')
             
             df_result = pd.concat([df_result, combined_batch], ignore_index=True)
             df_result.to_excel(OUTPUT_FILE, index=False)
             
-            time.sleep(1) # Gemini 3 Flash xử lý rất nhanh
+            time.sleep(2) # Avoid rate limits
         except Exception as e:
             print(f"Lỗi tại {i}: {e}")
             time.sleep(5)
@@ -76,4 +96,8 @@ def process_data():
     print("Hoàn tất!")
 
 if __name__ == "__main__":
-    process_data()
+    parser = argparse.ArgumentParser(description="Extract data from Excel using Gemini API")
+    parser.add_argument('--start-row', type=int, default=None, help="Starting row index (0-based) to begin extraction. If not provided, resumes from output file.")
+    args = parser.parse_args()
+    
+    process_data(start_idx=args.start_row)
